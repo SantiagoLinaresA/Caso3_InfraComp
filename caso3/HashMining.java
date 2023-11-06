@@ -1,5 +1,6 @@
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Scanner;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -97,27 +98,44 @@ class MineHashTask implements Runnable {
     }
 
     private void generateHashes(MessageDigest md, String prefix, String current, int length) {
-    if (solutionFound.get()) {
-        return;
-    }
+        if (solutionFound.get()) {
+            return;
+        }
+        
+        int dist = 26/length;
+        char[] letters = "abcdefghijklmnopqrstuvwxyz".toCharArray();
+        
+        char[] rta = new char[length];
+        for (int i = 0; i < length; i++) {
+            rta[i] = letters[i*dist];
+        }
 
-    if (length == 0) {
-        for (char c = 'a'; c <= 'z'; c++) {
-            String valueToHash = current + c;
+        String startingV = new String(rta);
+        
+        boolean done = false;
+        while (!solutionFound.get() && !done) {
+            int i = length-1;
+            boolean found = false;
+            while(i >= 0 && !found){
+                if (rta[i] != letters[letters.length-1]) {
+                    rta[i] = letters[Arrays.binarySearch(letters, rta[i])+1];
+                    found = true;
+                } else {
+                    rta[i] = letters[0];
+                }
+                i--;
+            }
+            String valueToHash = current + new String(rta);
             byte[] hashBytes = md.digest(valueToHash.getBytes());
             String hash = bytesToHex(hashBytes);
-
+    
             if (hash.startsWith(prefix)) {
                 solutionFound.set(true);
                 System.out.println("Thread " + threadId + " encontró una solución: " + valueToHash + " -> " + hash);
             }
-        }
-    } else {
-        for (char c = 'a'; c <= 'z'; c++) {
-            generateHashes(md, prefix, current + c, length - 1);
+            done = startingV.equals(new String(rta));
         }
     }
-}
 
 
     private String bytesToHex(byte[] bytes) {
@@ -127,4 +145,5 @@ class MineHashTask implements Runnable {
         }
         return result.toString();
     }
+
 }
