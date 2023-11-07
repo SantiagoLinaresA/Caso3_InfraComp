@@ -9,16 +9,18 @@ class MineHashTask extends Thread {
     private int leadingZeros;
     private int threadId;
     static AtomicBoolean solutionFound = new AtomicBoolean(false);
+    private boolean multiThreaded;
 
     public static AtomicBoolean getSolutionFound() {
         return solutionFound;
     }
 
-    public MineHashTask(String algorithm, String data, int leadingZeros, int threadId) {
+    public MineHashTask(String algorithm, String data, int leadingZeros, int threadId, boolean multiThreaded) {
         this.algorithm = algorithm;
         this.data = data;
         this.leadingZeros = leadingZeros;
         this.threadId = threadId;
+        
     }
 
     @Override
@@ -27,20 +29,10 @@ class MineHashTask extends Thread {
             MessageDigest md = MessageDigest.getInstance(algorithm);
             String prefix = "0".repeat(leadingZeros);
 
-            if (threadId == 2) {
-                int i = 7;
-                while(!solutionFound.get() && i > 0){
-                    generateHashes(md, prefix, data, i);
-                    i--;
-                }
+            for (int i = 1; i <= 7; i++) {
+                generateHashes(md, prefix, "", i);
             }
-            else{
-                int i = 1;
-                while (!solutionFound.get() && i <= 7) {
-                    generateHashes(md, prefix, data, i);
-                    i++;
-                }
-            }
+
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
@@ -50,40 +42,32 @@ class MineHashTask extends Thread {
         if (solutionFound.get()) {
             return;
         }
-        
-        int dist = 26/length;
-        char[] letters = "abcdefghijklmnopqrstuvwxyz".toCharArray();
-        
-        char[] rta = new char[length];
-        for (int i = 0; i < length; i++) {
-            rta[i] = letters[i*dist];
-        }
 
-        String startingV = new String(rta);
-        
-        boolean done = false;
-        while (!solutionFound.get() && !done) {
-            int i = length-1;
-            boolean found = false;
-            while(i >= 0 && !found){
-                if (rta[i] != letters[letters.length-1]) {
-                    rta[i] = letters[Arrays.binarySearch(letters, rta[i])+1];
-                    found = true;
-                } else {
-                    rta[i] = letters[0];
-                }
-                i--;
-            }
-            String rtaStr = new String(rta);
-            String valueToHash = current + rtaStr;
+        if (current.length() == length) {
+            String valueToHash = data + current;
             byte[] hashBytes = md.digest(valueToHash.getBytes());
             String hash = bytesToBinary(hashBytes);
     
             if (hash.startsWith(prefix)) {
                 solutionFound.set(true);
-                System.out.println("Thread " + threadId + " encontró una solución: " + rtaStr + " -> " + hash);
+                System.out.println("Thread " + threadId + " encontró una solución: " + current + " -> " + hash);
             }
-            done = startingV.equals(new String(rta));
+        } else {
+
+            if (multiThreaded) {
+                if (threadId == 1) {
+                    if (current.length() == 3) {
+                        return;
+                    }
+                } else {
+                    if (current.length() == 4) {
+                        return;
+                    }
+                }
+            }
+            for (char c = 'a'; c <= 'z'; c++) {
+                generateHashes(md, prefix, current+c, length);
+            }
         }
     }
 

@@ -1,4 +1,5 @@
 import java.util.Scanner;
+import java.awt.Toolkit;
 
 public class HashMining {
     
@@ -19,7 +20,6 @@ public class HashMining {
                 System.out.println("Número de hilos no válido. Debe ser 1 o 2.");
                 return;
             }
-
 
             System.out.println("Comenzando la minería de hash...");
             MineHash(algorithm, data, leadingZeros, numThreads);
@@ -56,5 +56,6 @@ public class HashMining {
         } else {
             System.out.println("Tiempo transcurrido: " + elapsedTime + " ms");
         }
+        Toolkit.getDefaultToolkit().beep();
     }
 }
