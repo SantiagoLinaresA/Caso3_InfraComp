@@ -1,6 +1,5 @@
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 class MineHashTask extends Thread {
@@ -10,6 +9,8 @@ class MineHashTask extends Thread {
     private int threadId;
     static AtomicBoolean solutionFound = new AtomicBoolean(false);
     private boolean multiThreaded;
+    MessageDigest md;
+    String prefix;
 
     public static AtomicBoolean getSolutionFound() {
         return solutionFound;
@@ -26,48 +27,66 @@ class MineHashTask extends Thread {
     @Override
     public void run() {
         try {
-            MessageDigest md = MessageDigest.getInstance(algorithm);
-            String prefix = "0".repeat(leadingZeros);
+            md = MessageDigest.getInstance(algorithm);
+            prefix = "0".repeat(leadingZeros);
 
-            for (int i = 1; i <= 7; i++) {
-                generateHashes(md, prefix, "", i);
-            }
+            generateHashes("");
 
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
     }
 
-    private void generateHashes(MessageDigest md, String prefix, String current, int length) {
-        if (solutionFound.get()) {
+    private void generateHashes(String current) {
+        if (solutionFound.get() || current.length() == 7) {
             return;
         }
 
-        if (current.length() == length) {
-            String valueToHash = data + current;
-            byte[] hashBytes = md.digest(valueToHash.getBytes());
-            String hash = bytesToBinary(hashBytes);
-    
-            if (hash.startsWith(prefix)) {
-                solutionFound.set(true);
-                System.out.println("Thread " + threadId + " encontró una solución: " + current + " -> " + hash);
-            }
-        } else {
-
-            if (multiThreaded) {
-                if (threadId == 1) {
-                    if (current.length() == 3) {
-                        return;
+        if (multiThreaded) {
+            if (threadId == 1) {
+                if (current.length()%2 == 0){
+                    for (char c = 'a'; c <= 'm'; c++) {
+                        checkHash(current+c);
+                        generateHashes(current+c);
+                        checkHash(current+c);
+                        generateHashes(current+c);
                     }
                 } else {
-                    if (current.length() == 4) {
-                        return;
+                    for (char c = 'n'; c <= 'z'; c++) {
+                        checkHash(current+c);
+                        generateHashes(current+c);
+                    }
+                }
+            } else {
+                if (current.length()%2 == 0){
+                    for (char c = 'n'; c <= 'z'; c++) {
+                        checkHash(current+c);
+                        generateHashes(current+c);
+                    }
+                } else {
+                    for (char c = 'a'; c <= 'm'; c++) {
+                        checkHash(current+c);
+                        generateHashes(current+c);
                     }
                 }
             }
-            for (char c = 'a'; c <= 'z'; c++) {
-                generateHashes(md, prefix, current+c, length);
+        }
+        else{
+            for (char c = 'n'; c <= 'z'; c++) {
+                checkHash(current+c);
+                generateHashes(current+c);
             }
+        }
+    }
+    
+    private void checkHash(String sal){
+        String valueToHash = data + sal;
+        byte[] hashBytes = md.digest(valueToHash.getBytes());
+        String hash = bytesToBinary(hashBytes);
+
+        if (hash.startsWith(prefix)) {
+            solutionFound.set(true);
+            System.out.println("Thread " + threadId + " encontró una solución: " + sal + " -> " + hash);
         }
     }
 
@@ -81,5 +100,4 @@ class MineHashTask extends Thread {
         }
         return result.toString();
     }
-
 }
