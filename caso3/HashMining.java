@@ -20,7 +20,6 @@ public class HashMining {
                 System.out.println("Número de hilos no válido. Debe ser 1 o 2.");
                 return;
             }
-
             System.out.println("Comenzando la minería de hash...");
             MineHash(algorithm, data, leadingZeros, numThreads);
         }
@@ -29,12 +28,12 @@ public class HashMining {
     public static void MineHash(String algorithm, String data, int leadingZeros, int numThreads) {
         long startTime = System.currentTimeMillis();
         
-        MineHashTask task1 = new MineHashTask(algorithm, data, leadingZeros, 1);
+        MineHashTask task1 = new MineHashTask(algorithm, data, leadingZeros, 1, numThreads == 2);
         Thread thread1 = new Thread(task1);
         thread1.start();
         
         if (numThreads == 2) {
-            MineHashTask task2 = new MineHashTask(algorithm, data, leadingZeros, 2);
+            MineHashTask task2 = new MineHashTask(algorithm, data, leadingZeros, 2, true);
             thread2 = new Thread(task2);
             thread2.start();
         }
@@ -53,9 +52,8 @@ public class HashMining {
 
         if (!MineHashTask.getSolutionFound().get()) {
             System.out.println("No se encontró una solución en todo el espacio de búsqueda.");
-        } else {
-            System.out.println("Tiempo transcurrido: " + elapsedTime + " ms");
         }
+        System.out.println("Tiempo transcurrido: " + elapsedTime + " ms");
         Toolkit.getDefaultToolkit().beep();
     }
 }

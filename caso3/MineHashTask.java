@@ -10,7 +10,6 @@ class MineHashTask extends Thread {
     static AtomicBoolean solutionFound = new AtomicBoolean(false);
     private boolean multiThreaded;
     MessageDigest md;
-    String prefix;
 
     public static AtomicBoolean getSolutionFound() {
         return solutionFound;
@@ -21,17 +20,14 @@ class MineHashTask extends Thread {
         this.data = data;
         this.leadingZeros = leadingZeros;
         this.threadId = threadId;
-        
+        this.multiThreaded = multiThreaded;
     }
 
     @Override
     public void run() {
         try {
             md = MessageDigest.getInstance(algorithm);
-            prefix = "0".repeat(leadingZeros);
-
             generateHashes("");
-
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
         }
@@ -42,37 +38,21 @@ class MineHashTask extends Thread {
             return;
         }
 
-        if (multiThreaded) {
+        if (multiThreaded && current.length() == 0) {
             if (threadId == 1) {
-                if (current.length()%2 == 0){
-                    for (char c = 'a'; c <= 'm'; c++) {
-                        checkHash(current+c);
-                        generateHashes(current+c);
-                        checkHash(current+c);
-                        generateHashes(current+c);
-                    }
-                } else {
-                    for (char c = 'n'; c <= 'z'; c++) {
-                        checkHash(current+c);
-                        generateHashes(current+c);
-                    }
+                for (char c = 'a'; c <= 'm'; c++) {
+                    checkHash(current+c);
+                    generateHashes(current+c);
                 }
             } else {
-                if (current.length()%2 == 0){
-                    for (char c = 'n'; c <= 'z'; c++) {
-                        checkHash(current+c);
-                        generateHashes(current+c);
-                    }
-                } else {
-                    for (char c = 'a'; c <= 'm'; c++) {
-                        checkHash(current+c);
-                        generateHashes(current+c);
-                    }
+                for (char c = 'n'; c <= 'z'; c++) {
+                    checkHash(current+c);
+                    generateHashes(current+c);
                 }
             }
         }
         else{
-            for (char c = 'n'; c <= 'z'; c++) {
+            for (char c = 'a'; c <= 'z'; c++) {
                 checkHash(current+c);
                 generateHashes(current+c);
             }
@@ -82,22 +62,36 @@ class MineHashTask extends Thread {
     private void checkHash(String sal){
         String valueToHash = data + sal;
         byte[] hashBytes = md.digest(valueToHash.getBytes());
-        String hash = bytesToBinary(hashBytes);
 
-        if (hash.startsWith(prefix)) {
+        if (countZeros(hashBytes)) {
             solutionFound.set(true);
-            System.out.println("Thread " + threadId + " encontró una solución: " + sal + " -> " + hash);
+            System.out.println("Thread " + threadId + " encontró una solución: " + sal);
         }
     }
 
+    public boolean countZeros(byte[] hashCode){
+        int index = 0;
+        int upperBound = -1;
+        boolean valid = true;
+        boolean multiple = (this.leadingZeros%8==0);
 
-    private String bytesToBinary(byte[] bytes) {
-        StringBuilder result = new StringBuilder();
-        for (byte b : bytes) {
-            for (int i = 7; i >= 0; i--) {
-                result.append((b >> i) & 1);
+        if(multiple){
+            upperBound = (this.leadingZeros/8)-1;
+        }
+        else{
+            upperBound = (this.leadingZeros/8);
+        }
+
+        while(index <= upperBound && valid){
+            if(index == upperBound && !multiple){
+                valid = (String.format("%8s", Integer.toBinaryString(hashCode[index] & 0xFF)).replace(' ', '0')).startsWith("0000");
+                index++;
+            }
+            else{
+                valid = (hashCode[index] == (byte)0);
+                index++;
             }
         }
-        return result.toString();
+        return valid;
     }
 }
