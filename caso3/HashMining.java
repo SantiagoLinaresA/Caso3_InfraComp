@@ -1,9 +1,9 @@
 import java.util.Scanner;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.awt.Toolkit;
 
 public class HashMining {
-    private static long startTime;
-
+    
+    static Thread thread2;
     public static void main(String[] args) {
         try (Scanner scanner = new Scanner(System.in)) {
             System.out.println("Bienvenido al programa de minería de hash.");
@@ -20,42 +20,40 @@ public class HashMining {
                 System.out.println("Número de hilos no válido. Debe ser 1 o 2.");
                 return;
             }
-
-            AtomicBoolean solutionFound = new AtomicBoolean(false);
-
             System.out.println("Comenzando la minería de hash...");
-
-            if (numThreads == 1) {
-                SingleThreadedMiner miner = new SingleThreadedMiner(algorithm, data, leadingZeros, solutionFound);
-                miner.start();
-                try {
-                    miner.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            } else if (numThreads == 2) {
-                MultiThreadedMiner miner1 = new MultiThreadedMiner(algorithm, data, leadingZeros, solutionFound);
-                MultiThreadedMiner miner2 = new MultiThreadedMiner(algorithm, data, leadingZeros, solutionFound);
-
-                miner1.start();
-                miner2.start();
-
-                try {
-                    miner1.join();
-                    miner2.join();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            long endTime = System.currentTimeMillis();
-            long elapsedTime = endTime - startTime;
-
-            if (!solutionFound.get()) {
-                System.out.println("No se encontró una solución en todo el espacio de búsqueda.");
-            } else {
-                System.out.println("Tiempo transcurrido: " + elapsedTime + " ms");
-            }
+            MineHash(algorithm, data, leadingZeros, numThreads);
         }
+    }
+
+    public static void MineHash(String algorithm, String data, int leadingZeros, int numThreads) {
+        long startTime = System.currentTimeMillis();
+        
+        MineHashTask task1 = new MineHashTask(algorithm, data, leadingZeros, 1, numThreads == 2);
+        Thread thread1 = new Thread(task1);
+        thread1.start();
+        
+        if (numThreads == 2) {
+            MineHashTask task2 = new MineHashTask(algorithm, data, leadingZeros, 2, true);
+            thread2 = new Thread(task2);
+            thread2.start();
+        }
+
+        try {
+            thread1.join();
+            if (numThreads == 2) {
+                thread2.join();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        long endTime = System.currentTimeMillis();
+        long elapsedTime = endTime - startTime;
+
+        if (!MineHashTask.getSolutionFound().get()) {
+            System.out.println("No se encontró una solución en todo el espacio de búsqueda.");
+        }
+        System.out.println("Tiempo transcurrido: " + elapsedTime + " ms");
+        Toolkit.getDefaultToolkit().beep();
     }
 }
